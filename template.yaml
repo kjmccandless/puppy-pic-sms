@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: An AWS Serverless Specification template describing your function.
+Parameters:
+  PhoneNumber:
+    Type: String
+    Default: +15714399714
+    Description: Phone number to receive daily dog picture (e.g. +12223334444).
+  Hour:
+    Type: String
+    Default: 0
+    Description: What hour to send the daily dog picture (in UTC time).
+Resources:
+  getPuppyPic:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.6
+      Description: ''
+      MemorySize: 128
+      Timeout: 15
+      CodeUri: getPuppyPic
+      Environment:
+        Variables:
+          SNS_TOPIC: !Ref SNSTopic
+      Events:
+        ScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule:
+              'Fn::Join':
+                - ' '
+                - - cron(0
+                  - Ref: Hour
+                  - '* * ? *)'
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName:
+              'Fn::GetAtt':
+                - SNSTopic
+                - TopicName
+  SNSTopic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      DisplayName: puppyPicTopic
+      Subscription:
+        - Endpoint:
+            Ref: PhoneNumber
+          Protocol: sms
